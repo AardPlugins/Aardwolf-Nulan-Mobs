@@ -316,6 +316,11 @@ function get_mob_put_item_away()
 	if bag_id ~= "" then
 		Execute("put '" .. current_token .. "' " .. bag_id)
 	end
+
+	running_to_hunter = false
+	current_mob = ""
+	current_token = ""
+	current_index = ""
 end
 
 --
