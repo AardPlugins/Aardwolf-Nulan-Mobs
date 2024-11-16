@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE muclient>
+<muclient>
+    <plugin
+        name="Nulan_Mobs"
+        author="deathr"
+        id="38759cb88604569f1b0f55c3"
+        language="Lua"
+        purpose="Used to get mobs who are currently sleeping in Nulan"
+        date_written="2024-11-16 11:16:26"
+        save_state="y"
+        requires="5.07"
+        version="1.0">
+
+        <description trim="y">
+<![CDATA[
+Nulan has a number of mobs that will disappear depending on the time of day.  Once you have completed the area goal, you can give items to the Hunter who will find mobs that currently cna't be reached.
+
+This plugin expects you to have the following items:
+
+a songbird feather
+a feather of a grouse
+badger fur
+an eagle feather
+a white owl feather
+Wolf tooth
+fur of a prairie dog
+tail of a deer mouse
+
+These items can be found by killing mobs in the area.
+]]>
+        </description>
+    </plugin>
+
+    <script>
+<![CDATA[
+dofile(GetPluginInfo(GetPluginID(), 20) .. "Nulan_Mobs.lua")
+]]>
+    </script>
+
+    <aliases>
+        <alias enabled="y"
+            regexp="y"
+            match="^nulan set bag(?<bag>.*)$"
+            script="alias_set_bag_id"
+            sequence="100"
+            send_to="12"></alias>
+        <alias enabled="y"
+            regexp="y"
+            match="^nulan set keep(?<keep>.*)$"
+            script="alias_set_keep_tokens"
+            sequence="100"
+            send_to="12"></alias>
+        <alias enabled="y"
+            regexp="y"
+            match="^nulan options$"
+            script="alias_options"
+            sequence="100"
+            send_to="12"></alias>
+        <alias enabled="y"
+            regexp="y"
+            match="^nulan check(?<mob>.*)$"
+            script="alias_check_mob"
+            sequence="100"
+            send_to="12"></alias>
+        <alias enabled="y"
+            regexp="y"
+            match="^nulan get(?<mob>.*)$"
+            script="alias_get_mob"
+            sequence="100"
+            send_to="12"></alias>
+        <alias enabled="y"
+            regexp="y"
+            match="^nulan help$"
+            script="alias_help"
+            sequence="100"
+            send_to="12"></alias>
+    </aliases>
+
+</muclient>
