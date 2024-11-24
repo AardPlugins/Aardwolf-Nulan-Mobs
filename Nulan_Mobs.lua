@@ -179,8 +179,8 @@ end
 function clean_mob_name(mob)
 	mob = Trim(mob)
 	mob = string.lower(mob)
-	mob = Replace(mob, "an ", "", false)
-	mob = Replace(mob, "a ", "", false)
+	mob = string.gsub(mob, "^an ", "")
+	mob = string.gsub(mob, "^a ", "")
 	return mob
 end
 
