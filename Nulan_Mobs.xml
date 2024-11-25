@@ -75,6 +75,35 @@ dofile(GetPluginInfo(GetPluginID(), 20) .. "Nulan_Mobs.lua")
             script="alias_help"
             sequence="100"
             send_to="12"></alias>
+
+        <alias enabled="y"
+            regexp="y"
+            match="^nulan debug$"
+            script="alias_set_debug_mode"
+            sequence="100"
+            send_to="12"></alias>
+
+        <!-- Update Aliases -->
+        <alias enabled="y"
+            regexp="y"
+            match="^nulan update$"
+            script="alias_update_plugin"
+            sequence="100"
+            send_to="12"></alias>
+
+        <alias enabled="y"
+            regexp="y"
+            match="^nulan force update(?: (?<branch>\S+))?$"
+            script="alias_force_update_plugin"
+            sequence="100"
+            send_to="12"></alias>
+
+        <alias enabled="y"
+            regexp="y"
+            match="^nulan reload$"
+            script="alias_reload_plugin"
+            sequence="100"
+            send_to="12"></alias>
     </aliases>
 
 </muclient>

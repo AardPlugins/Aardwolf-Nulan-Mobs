@@ -5,9 +5,11 @@ hunter_run_timout_seconds = 15
 
 bag_id_var_name = "nulan_var_bag_id"
 keep_tokens_var_name = "nulan_var_keep_tokens"
+debug_mode_var_name = "exits_var_debug_mode"
 
 bag_id = GetVariable(bag_id_var_name) or ""
 keep_tokens = tonumber(GetVariable(keep_tokens_var_name)) or 1
+debug_mode = tonumber(GetVariable(debug_mode_var_name)) or 0
 
 running_to_hunter = false
 current_mob = ""
@@ -84,34 +86,34 @@ end
 local plugin_id_gmcp_handler = "3e7dedbe37e44942dd46d264"
 
 function OnPluginBroadcast(msg, id, name, text)
-    if (id == plugin_id_gmcp_handler) then
-        if (text == "room.info") then
-            on_room_info_update(gmcp("room.info"))
-        end
-    end
+	if (id == plugin_id_gmcp_handler) then
+		if (text == "room.info") then
+			on_room_info_update(gmcp("room.info"))
+		end
+	end
 end
 
 function OnPluginInstall()
-    init_plugin()
+	init_plugin()
 end
 
 function OnPluginConnect()
-    init_plugin()
+	init_plugin()
 end
 
 function OnPluginEnable()
-    init_plugin()
+	init_plugin()
 end
 
 function init_plugin()
-    Message("Enabled Plugin")
-    on_room_info_update(gmcp("room.info"))
+	Message("Enabled Plugin")
+	on_room_info_update(gmcp("room.info"))
 end
 
 function gmcp(s)
-    local ret, datastring = CallPlugin(plugin_id_gmcp_handler, "gmcpdata_as_string", s)
-    pcall(loadstring("data = " .. datastring))
-    return data
+	local ret, datastring = CallPlugin(plugin_id_gmcp_handler, "gmcpdata_as_string", s)
+	pcall(loadstring("data = " .. datastring))
+	return data
 end
 
 --
@@ -156,6 +158,24 @@ function alias_set_keep_tokens(name, line, wildcards)
 	end
 	SetVariable(nulan_var_keep_tokens, new_keep_tokens)
 	keep_tokens = new_keep_tokens
+end
+
+function alias_set_debug_mode(name, line, wildcards)
+	local new_debug_mode = -1
+
+	if debug_mode == 1 then
+		new_debug_mode = 0
+	else
+		new_debug_mode = 1
+	end
+
+	if new_debug_mode == 0 then
+		Message("@WDisabled debug logs")
+	else
+		Message("@WEnabled debug logs")
+	end
+	SetVariable(debug_mode_var_name, new_debug_mode)
+	debug_mode = new_debug_mode
 end
 
 function alias_options(name, line, wildcards)
@@ -252,12 +272,17 @@ end
 function alias_help(name, line, wildcards)
 	Message([[@WCommands:@w
 
-  @Wnulan help           @w- Print out this help message
-  @Wnulan options        @w- Print out the plugin options
-  @Wnulan set bag @Ybag_id @w- Sets the bag to retrieve and store items from
-  @Wnulan set keep       @w- Toggles automatically keeping items
-  @Wnulan check @Ymob      @w- Prints out details on how to get a mob
-  @Wnulan get @Ymob        @w- Runs to the Nulan Hunter and gets the mob specified]])
+  @Wnulan help                @w- Print out this help message
+  @Wnulan update              @w- Updates to the latest version of the plugin
+  @Wnulan reload              @w- Reloads the plugin
+  @Wnulan options             @w- Print out the plugin options
+  @Wnulan set bag @Ybag_id      @w- Sets the bag to retrieve and store items from
+  @Wnulan set keep            @w- Toggles automatically keeping items
+  @Wnulan check @Ymob           @w- Prints out details on how to get a mob
+  @Wnulan get @Ymob             @w- Runs to the Nulan Hunter and gets the mob specified
+
+  @Wnulan debug               @w- Toggles debug logs
+  @Wnulan force update @Ybranch @w- Force updates to the branch specified]])
 end
 
 --
@@ -343,4 +368,142 @@ end
 
 function Message(str)
 	AnsiNote(stylesToANSI(ColoursToStyles(string.format("\n@C[@GNulan@C] %s@w\n", str))))
+end
+
+function Debug(str)
+	if debug_mode == 1 then
+		Message(string.format("@gDEBUG@w %s", str))
+	end
+end
+
+function Error(str)
+	Message(string.format("@RERROR@w %s", str))
+end
+
+--
+-- Update code
+--
+
+async = require "async"
+
+local version_url = "https://raw.githubusercontent.com/AardPlugins/Aardwolf-Nulan-Mobs/refs/heads/main/VERSION"
+local plugin_base_url = "https://raw.githubusercontent.com/AardPlugins/Aardwolf-Nulan-Mobs/refs"
+local plugin_files = {
+	{
+		remote_file = "Nulan_Mobs.xml",
+		local_file =  GetPluginInfo(GetPluginID(), 6),
+		update_page= ""
+	},
+	{
+		remote_file = "Nulan_Mobs.lua",
+		local_file =  GetPluginInfo(GetPluginID(), 20) .. "Nulan_Mobs.lua",
+		update_page= ""
+	}
+}
+local download_file_index = 0
+local download_file_branch = ""
+local plugin_version = GetPluginInfo(GetPluginID(), 19)
+
+function download_file(url, callback)
+	Debug("Starting download of " .. url)
+	-- Add timestamp as a query parameter to bust cache
+	url = url .. "?t=" .. GetInfo(304)
+	async.doAsyncRemoteRequest(url, callback, "HTTPS")
+end
+
+function alias_reload_plugin(name, line, wildcards)
+	Message("Reloading plugin")
+	reload_plugin()
+end
+
+function alias_update_plugin(name, line, wildcards)
+	Debug("Checking version to see if there is an update")
+	download_file(version_url, check_version_callback)
+end
+
+function check_version_callback(retval, page, status, headers, full_status, request_url)
+	if status ~= 200 then
+		Error("Error while fetching latest version number")
+		return
+	end
+
+	local upstream_version = Trim(page)
+	if upstream_version == tostring(plugin_version) then
+		Message("@WNo new updates available")
+		return
+	end
+
+	Message("@WUpdating to version " .. upstream_version)
+
+	local branch = "tags/v" .. upstream_version
+	download_plugin(branch)
+end
+
+function alias_force_update_plugin(name, line, wildcards)
+	local branch = "main"
+
+	if wildcards.branch ~= "" then
+		branch = wildcards.branch
+	end
+
+	Message("@WForcing updating to branch " .. branch)
+
+	branch = "heads/" .. branch
+	download_plugin(branch)
+end
+
+function download_plugin(branch)
+	Debug("Downloading plugin branch " .. branch)
+	download_file_index = 0
+	download_file_branch = branch
+
+	download_next_file()
+end
+
+function download_next_file()
+	download_file_index = download_file_index + 1
+
+	if download_file_index > #plugin_files then
+		Debug("All plugin files downloaded")
+		finish_update()
+		return
+	end
+
+	local url = string.format("%s/%s/%s", plugin_base_url, download_file_branch, plugin_files[download_file_index].remote_file)
+	download_file(url, download_file_callback)
+end
+
+function download_file_callback(retval, page, status, headers, full_status, request_url)
+	if status ~= 200 then
+		Error("Error while fetching the plugin")
+		return
+	end
+
+	plugin_files[download_file_index].update_page = page
+
+	download_next_file()
+end
+
+function finish_update()
+	Message("@WUpdating plugin. Do not touch anything!")
+
+	-- Write all downloaded files to disk
+	for i, plugin_file in ipairs(plugin_files) do
+		local file = io.open(plugin_file.local_file, "w")
+		file:write(plugin_file.update_page)
+		file:close()
+	end
+
+	reload_plugin()
+
+	Message("@WUpdate complete!")
+end
+
+function reload_plugin()
+	if GetAlphaOption("script_prefix") == "" then
+		SetAlphaOption("script_prefix", "\\\\\\")
+	end
+	Execute(
+		GetAlphaOption("script_prefix") .. 'DoAfterSpecial(0.5, "ReloadPlugin(\'' .. GetPluginID() .. '\')", sendto.script)'
+	)
 end
